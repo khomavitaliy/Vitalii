@@ -1,0 +1,754 @@
+<title>Радар дешёвых поездок</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Unbounded:wght@600;800&display=swap">
+<style>
+/* Layout: blue band holding a boarding-pass search card with departure-board codes; below it two lanes of site tickets (flights blue, stays coral), a yellow "anywhere" block, low-cost airlines and tips */
+:root{
+  --paper:#EEF1FB;
+  --surface:#FFFFFF;
+  --field:#F4F6FD;
+  --ink:#0C1430;
+  --muted:#525C82;
+  --line:#D3D9EE;
+  --band:#2B44FF;
+  --on-band:#FFFFFF;
+  --on-band-muted:#D3D9FF;
+  --sky:#2B44FF;
+  --sky-soft:#E3E7FF;
+  --coral:#D11B39;
+  --coral-soft:#FFE3E8;
+  --sun:#FFC83D;
+  --sun-ink:#1B1500;
+  --tile:#0C1430;
+  --tile-line:rgba(255,255,255,.14);
+  --danger:#C4122F;
+  --shadow:0 1px 0 rgba(12,20,48,.05), 0 24px 48px -24px rgba(12,20,48,.45);
+  --font-display:"Unbounded","Arial Black",system-ui,sans-serif;
+  --font-body:"Golos Text",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#090E20; --surface:#131A35; --field:#0D1329; --ink:#ECF0FF; --muted:#9BA4CB; --line:#29335C;
+    --band:#1D30C8; --on-band:#FFFFFF; --on-band-muted:#C2CAFF;
+    --sky:#93A1FF; --sky-soft:#1C2556; --coral:#FF7F90; --coral-soft:#3B1621;
+    --sun:#FFCD4D; --sun-ink:#1B1500; --tile:#050816; --tile-line:rgba(255,255,255,.10); --danger:#FF8A9A;
+    --shadow:0 24px 48px -24px rgba(0,0,0,.8);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#090E20; --surface:#131A35; --field:#0D1329; --ink:#ECF0FF; --muted:#9BA4CB; --line:#29335C;
+  --band:#1D30C8; --on-band:#FFFFFF; --on-band-muted:#C2CAFF;
+  --sky:#93A1FF; --sky-soft:#1C2556; --coral:#FF7F90; --coral-soft:#3B1621;
+  --sun:#FFCD4D; --sun-ink:#1B1500; --tile:#050816; --tile-line:rgba(255,255,255,.10); --danger:#FF8A9A;
+  --shadow:0 24px 48px -24px rgba(0,0,0,.8);
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3{text-wrap:balance;margin:0}
+p{margin:0}
+a{color:inherit}
+.wrap{max-width:1120px;margin-inline:auto;padding-left:max(20px, env(safe-area-inset-left, 0px));padding-right:max(20px, env(safe-area-inset-right, 0px))}
+.visually-hidden{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- Band ---------- */
+.band{background:var(--band);color:var(--on-band)}
+.band .wrap{padding-block:clamp(28px,5vw,52px) clamp(32px,5vw,56px);display:grid;gap:clamp(22px,3.5vw,34px)}
+.masthead{display:grid;gap:14px;max-width:760px}
+.eyebrow{font-family:var(--font-mono);font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--sun)}
+h1{font-family:var(--font-display);font-weight:800;font-size:clamp(30px,5.6vw,62px);line-height:1.02;letter-spacing:-.02em}
+.lede{font-size:clamp(16px,1.6vw,19px);line-height:1.55;color:var(--on-band-muted);max-width:60ch}
+
+/* ---------- Boarding pass ---------- */
+.pass{background:var(--surface);color:var(--ink);border-radius:22px;box-shadow:var(--shadow);display:grid;grid-template-columns:minmax(0,1fr) 300px;overflow:hidden}
+.pass-main{padding:clamp(18px,3vw,32px);display:grid;gap:22px;min-width:0}
+.pass-stub{position:relative;padding:clamp(18px,3vw,28px);border-left:2px dashed var(--line);display:grid;gap:18px;align-content:start;background:var(--field)}
+.pass-stub::before,.pass-stub::after{content:"";position:absolute;width:26px;height:26px;border-radius:50%;background:var(--band);left:-14px}
+.pass-stub::before{top:-13px}
+.pass-stub::after{bottom:-13px}
+
+.board{display:grid;grid-template-columns:auto minmax(40px,1fr) auto;align-items:center;gap:clamp(10px,2vw,22px)}
+.end{display:grid;gap:8px;justify-items:start;min-width:0}
+.end-to{justify-items:end;text-align:right}
+.end-label{font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.end-city{font-weight:600;font-size:15px;color:var(--ink);max-width:22ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.flaps{display:flex;gap:.08em;font-family:var(--font-mono);font-weight:700;font-size:clamp(30px,6.4vw,62px);line-height:1}
+.flap{display:inline-grid;place-items:center;width:1.02em;height:1.28em;background:var(--tile);color:var(--sun);border-radius:.13em;position:relative;transform-origin:50% 50%;animation:flip .5s cubic-bezier(.2,.9,.25,1) both}
+.flap::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:var(--tile-line)}
+@keyframes flip{from{transform:perspective(500px) rotateX(-90deg)}to{transform:perspective(500px) rotateX(0)}}
+.path{position:relative;height:28px;display:flex;align-items:center;justify-content:center;min-width:0}
+.path::before{content:"";position:absolute;left:0;right:0;top:50%;border-top:2px dashed var(--line)}
+.path svg{position:relative;width:28px;height:28px;fill:var(--sky);background:var(--surface);padding:2px;transform:rotate(90deg)}
+.example{justify-self:start;display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;background:var(--sun);color:var(--sun-ink);padding:5px 12px;border-radius:999px}
+
+.route{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:10px;align-items:end}
+.dates{display:flex;flex-wrap:wrap;gap:14px 12px;align-items:end}
+.dates .field{flex:1 1 170px}
+.field{display:grid;gap:6px;min-width:0}
+.field label,.st-label,.fld-label{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+input[type="text"],input[type="date"],input[type="number"],select{font:inherit;font-size:16px;color:var(--ink);background:var(--field);border:1.5px solid var(--line);border-radius:12px;height:50px;padding:0 14px;width:100%;min-width:0}
+.pass-stub input,.pass-stub select{background:var(--surface)}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+input[aria-invalid="true"]{border-color:var(--danger)}
+.swap{height:50px;width:50px;border-radius:50%;border:1.5px solid var(--line);background:var(--surface);color:var(--sky);cursor:pointer;display:grid;place-items:center;transition:transform .25s}
+.swap:hover{transform:rotate(180deg);border-color:var(--sky)}
+.swap svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+
+.seg{display:inline-flex;background:var(--field);border:1.5px solid var(--line);border-radius:999px;padding:4px;flex:0 0 auto}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{padding:9px 16px;border-radius:999px;font-weight:600;font-size:14px;cursor:pointer;color:var(--muted);white-space:nowrap}
+.seg input:checked + label{background:var(--ink);color:var(--surface)}
+.seg input:focus-visible + label{outline:3px solid var(--sky);outline-offset:2px}
+.seg-wrap{flex:1 1 100%}
+
+.msg{font-size:14px;font-weight:500;color:var(--danger);min-height:1.5em}
+.msg:empty{display:none}
+
+.stepper{display:grid;gap:6px}
+.st-ctl{display:grid;grid-template-columns:50px minmax(0,1fr) 50px;gap:8px}
+.st-ctl button{height:50px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:22px;font-weight:600;cursor:pointer}
+.st-ctl button:hover{border-color:var(--sky);color:var(--sky)}
+.st-ctl input{text-align:center;font-family:var(--font-mono);font-weight:700;font-variant-numeric:tabular-nums;-moz-appearance:textfield;appearance:textfield}
+.st-ctl input::-webkit-inner-spin-button,.st-ctl input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.st-hint{font-size:13px;color:var(--muted)}
+.go-btn{height:54px;border:0;border-radius:14px;background:var(--sun);color:var(--sun-ink);font-family:var(--font-display);font-weight:600;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px}
+.go-btn:hover{filter:brightness(1.05)}
+.go-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- Results ---------- */
+main{padding-block:clamp(36px,5vw,64px);display:grid;gap:clamp(40px,6vw,72px)}
+.lane{--lane:var(--sky);--lane-soft:var(--sky-soft);display:grid;gap:20px;scroll-margin-top:16px}
+.lane-stay{--lane:var(--coral);--lane-soft:var(--coral-soft)}
+.lane-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 24px}
+.lane-title{display:flex;align-items:center;gap:14px}
+.lane-title h2{font-family:var(--font-display);font-weight:800;font-size:clamp(24px,3.2vw,34px);letter-spacing:-.01em}
+.lane-count{font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--lane);background:var(--lane-soft);padding:4px 10px;border-radius:999px;white-space:nowrap}
+.lane-sum{font-family:var(--font-mono);font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:0}
+
+.sites{display:grid;gap:16px;grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:1000px){.sites{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.sites{grid-template-columns:minmax(0,1fr)}}
+.site{display:grid;grid-template-rows:auto 1fr auto auto;gap:14px;padding:20px;background:var(--surface);border:1.5px solid var(--line);border-radius:18px;text-decoration:none;color:var(--ink);transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;min-width:0}
+.site:hover{transform:translateY(-4px);border-color:var(--lane);box-shadow:var(--shadow)}
+.site:focus-visible{outline:3px solid var(--lane);outline-offset:3px}
+.site-top{display:grid;gap:4px}
+.site-name{font-family:var(--font-display);font-weight:600;font-size:19px;line-height:1.2}
+.site-domain{font-family:var(--font-mono);font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.site-why{font-size:14.5px;line-height:1.5;color:var(--ink)}
+.chips{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12.5px;font-weight:600;padding:4px 9px;border-radius:999px;display:inline-flex;align-items:center;gap:5px;line-height:1.3}
+.chip.ok{background:var(--lane-soft);color:var(--lane)}
+.chip.ok::before{content:"";width:9px;height:5px;border-left:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(-45deg)}
+.chip.site{border:1.5px dashed var(--line);color:var(--muted)}
+.go{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--lane);color:var(--surface);font-weight:700;font-size:15px;padding:12px 16px;border-radius:12px}
+.go svg{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s ease}
+.site:hover .go svg{transform:translateX(4px)}
+.site.off{cursor:not-allowed;opacity:.62}
+.site.off:hover{transform:none;border-color:var(--line);box-shadow:none}
+.site.off .go{background:var(--field);color:var(--muted)}
+.site.off .go svg{display:none}
+
+/* ---------- Extras ---------- */
+.extras{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px}
+@media (max-width:820px){.extras{grid-template-columns:minmax(0,1fr)}}
+.anywhere{background:var(--sun);color:var(--sun-ink);border-radius:22px;padding:clamp(20px,3vw,32px);display:grid;gap:16px;align-content:start}
+.anywhere h2,.lcc h2,.tips h2{font-family:var(--font-display);font-weight:800;font-size:clamp(21px,2.6vw,27px);letter-spacing:-.01em}
+.anywhere p{font-size:15.5px;max-width:52ch}
+.any-links{display:flex;flex-wrap:wrap;gap:10px}
+.any-links a{display:inline-flex;align-items:center;gap:8px;background:var(--sun-ink);color:var(--sun);text-decoration:none;font-weight:700;font-size:15px;padding:11px 16px;border-radius:12px}
+.any-links a:focus-visible{outline:3px solid var(--sun-ink);outline-offset:3px}
+.any-links a svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.any-links a.off{opacity:.45;pointer-events:none}
+.any-note{font-size:13.5px;opacity:.82}
+.lcc{background:var(--surface);border:1.5px solid var(--line);border-radius:22px;padding:clamp(20px,3vw,32px);display:grid;gap:16px;align-content:start}
+.lcc p{font-size:15.5px;color:var(--muted);max-width:52ch}
+.lcc-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+@media (max-width:440px){.lcc-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.lcc-list a{display:block;text-align:center;text-decoration:none;font-weight:600;font-size:14.5px;padding:11px 8px;border-radius:12px;background:var(--field);border:1.5px solid var(--line)}
+.lcc-list a:hover{border-color:var(--sky);color:var(--sky)}
+.lcc-list a:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+
+.tips{display:grid;gap:22px}
+.tips ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px 32px}
+@media (max-width:900px){.tips ul{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:580px){.tips ul{grid-template-columns:minmax(0,1fr)}}
+.tips li{display:grid;gap:6px;padding-top:14px;border-top:2px solid var(--ink);font-size:15px;line-height:1.55;color:var(--muted)}
+.tips li b{font-family:var(--font-display);font-weight:600;font-size:15.5px;color:var(--ink)}
+
+.foot{font-size:13.5px;color:var(--muted);border-top:1.5px solid var(--line);padding-top:20px;max-width:80ch}
+
+@media (max-width:820px){
+  .pass{grid-template-columns:minmax(0,1fr)}
+  .pass-stub{border-left:0;border-top:2px dashed var(--line)}
+  .pass-stub::before{left:-13px;top:-14px}
+  .pass-stub::after{left:auto;right:-13px;top:-14px;bottom:auto}
+  .stub-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+}
+@media (max-width:440px){
+  .route{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"from swap" "to to"}
+  .route .f-from{grid-area:from}
+  .route .swap{grid-area:swap}
+  .route .f-to{grid-area:to}
+  .stub-grid{grid-template-columns:minmax(0,1fr)}
+  .end-city{max-width:12ch}
+}
+.stub-grid{display:grid;gap:16px}
+
+@media (prefers-reduced-motion: reduce){
+  .flap{animation:none}
+  .site,.swap,.go svg{transition:none}
+  .site:hover{transform:none}
+}
+</style>
+
+<header class="band">
+  <div class="wrap">
+    <div class="masthead">
+      <p class="eyebrow">Авиабилеты · Отели · Цены в евро</p>
+      <h1>Радар дешёвых поездок</h1>
+      <p class="lede">Укажите маршрут и даты один раз, и страница соберёт готовый поиск на восьми проверенных сайтах. Цены показывают сами сайты, поэтому они всегда актуальные.</p>
+    </div>
+
+    <form class="pass" id="trip" novalidate>
+      <div class="pass-main">
+        <div class="board" aria-hidden="true">
+          <div class="end">
+            <span class="end-label">Вылет</span>
+            <div class="flaps" id="flapsFrom"></div>
+            <span class="end-city" id="cityFrom"></span>
+          </div>
+          <div class="path"><svg viewBox="0 0 24 24"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg></div>
+          <div class="end end-to">
+            <span class="end-label">Прилёт</span>
+            <div class="flaps" id="flapsTo"></div>
+            <span class="end-city" id="cityTo"></span>
+          </div>
+        </div>
+        <p class="example" id="example">Это пример. Впишите свой маршрут.</p>
+
+        <div class="route">
+          <div class="field f-from">
+            <label for="from">Откуда</label>
+            <input type="text" id="from" list="cities" autocomplete="off" spellcheck="false" placeholder="Город или код аэропорта">
+          </div>
+          <button type="button" class="swap" id="swap" aria-label="Поменять «откуда» и «куда» местами">
+            <svg viewBox="0 0 24 24"><path d="M7 7h13M16 3l4 4-4 4M17 17H4M8 13l-4 4 4 4"/></svg>
+          </button>
+          <div class="field f-to">
+            <label for="to">Куда</label>
+            <input type="text" id="to" list="cities" autocomplete="off" spellcheck="false" placeholder="Город или код аэропорта">
+          </div>
+        </div>
+
+        <div class="dates">
+          <div class="seg-wrap">
+            <div class="seg" role="radiogroup" aria-label="Тип поездки">
+              <input type="radio" name="kind" id="kind-rt" value="rt" checked><label for="kind-rt">Туда и обратно</label>
+              <input type="radio" name="kind" id="kind-ow" value="ow"><label for="kind-ow">В одну сторону</label>
+            </div>
+          </div>
+          <div class="field">
+            <label for="dep">Туда</label>
+            <input type="date" id="dep">
+          </div>
+          <div class="field" id="retField">
+            <label for="ret">Обратно</label>
+            <input type="date" id="ret">
+          </div>
+          <div class="field" id="nightsField" hidden>
+            <label for="nights">Ночей в отеле</label>
+            <input type="number" id="nights" min="1" max="60" value="3" inputmode="numeric">
+          </div>
+        </div>
+        <p class="msg" id="msg" role="status" aria-live="polite"></p>
+      </div>
+
+      <div class="pass-stub">
+        <div class="stub-grid">
+          <div class="stepper">
+            <label class="st-label" for="pax">Путешественники</label>
+            <div class="st-ctl">
+              <button type="button" data-step="pax" data-d="-1" aria-label="Меньше путешественников">−</button>
+              <input type="number" id="pax" min="1" max="9" value="1" inputmode="numeric">
+              <button type="button" data-step="pax" data-d="1" aria-label="Больше путешественников">+</button>
+            </div>
+            <span class="st-hint">взрослые, 12 лет и старше</span>
+          </div>
+          <div class="stepper">
+            <label class="st-label" for="rooms">Номера в отеле</label>
+            <div class="st-ctl">
+              <button type="button" data-step="rooms" data-d="-1" aria-label="Меньше номеров">−</button>
+              <input type="number" id="rooms" min="1" max="5" value="1" inputmode="numeric">
+              <button type="button" data-step="rooms" data-d="1" aria-label="Больше номеров">+</button>
+            </div>
+            <span class="st-hint" id="nightsHint"></span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="market">Версия Skyscanner и Kayak</label>
+          <select id="market">
+            <option value="ie">Ирландия · английский</option>
+            <option value="de">Германия · немецкий</option>
+            <option value="es">Испания · испанский</option>
+            <option value="fr">Франция · французский</option>
+            <option value="it">Италия · итальянский</option>
+            <option value="nl">Нидерланды · нидерландский</option>
+          </select>
+        </div>
+        <button type="submit" class="go-btn">Показать сайты
+          <svg viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></svg>
+        </button>
+      </div>
+    </form>
+    <datalist id="cities"></datalist>
+  </div>
+</header>
+
+<main class="wrap" id="results">
+  <section class="lane lane-fly" aria-labelledby="h-fly" id="flights">
+    <div class="lane-head">
+      <div class="lane-title"><h2 id="h-fly">Авиабилеты</h2><span class="lane-count">4 сайта</span></div>
+      <p class="lane-sum" id="sumFly"></p>
+    </div>
+    <div class="sites" id="flySites"></div>
+  </section>
+
+  <section class="lane lane-stay" aria-labelledby="h-stay" id="hotels">
+    <div class="lane-head">
+      <div class="lane-title"><h2 id="h-stay">Отели и жильё</h2><span class="lane-count">4 сайта</span></div>
+      <p class="lane-sum" id="sumStay"></p>
+    </div>
+    <div class="sites" id="staySites"></div>
+  </section>
+
+  <section class="extras">
+    <div class="anywhere">
+      <h2>Не решили, куда?</h2>
+      <p>Эти поиски показывают самые дешёвые направления из вашего города на выбранные даты. На карте цен Google город вылета выберите на сайте.</p>
+      <div class="any-links">
+        <a id="anyKiwi" target="_blank" rel="noopener noreferrer">Kiwi.com: куда угодно <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a id="anySky" target="_blank" rel="noopener noreferrer">Skyscanner: везде <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a id="anyGoogle" href="https://www.google.com/travel/explore?hl=ru&amp;curr=EUR" target="_blank" rel="noopener noreferrer">Google: карта цен <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      </div>
+      <p class="any-note" id="anyNote"></p>
+    </div>
+
+    <div class="lcc">
+      <h2>Лоукостеры напрямую</h2>
+      <p>Если по маршруту летает лоукостер, сравните цену на его сайте. Там же бывают распродажи, которых нет у агрегаторов.</p>
+      <ul class="lcc-list">
+        <li><a href="https://www.ryanair.com" target="_blank" rel="noopener noreferrer">Ryanair</a></li>
+        <li><a href="https://wizzair.com" target="_blank" rel="noopener noreferrer">Wizz Air</a></li>
+        <li><a href="https://www.easyjet.com" target="_blank" rel="noopener noreferrer">easyJet</a></li>
+        <li><a href="https://www.vueling.com" target="_blank" rel="noopener noreferrer">Vueling</a></li>
+        <li><a href="https://www.transavia.com" target="_blank" rel="noopener noreferrer">Transavia</a></li>
+        <li><a href="https://www.eurowings.com" target="_blank" rel="noopener noreferrer">Eurowings</a></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="tips" aria-labelledby="h-tips">
+    <h2 id="h-tips">Как не переплатить</h2>
+    <ul>
+      <li><b>Сдвиньте даты</b>Перенос вылета на день-два часто заметно меняет цену. Смотрите календарь цен в Google Flights или режим «Весь месяц» в Skyscanner.</li>
+      <li><b>Проверьте соседние аэропорты</b>Вена и Братислава, Барселона и Жирона, Милан и Бергамо, Брюссель и Шарлеруа. Учтите стоимость дороги до города.</li>
+      <li><b>Считайте цену с багажом</b>У Ryanair и Wizz Air в базовый тариф входит только маленькая сумка под сиденье. Чемодан и выбор места оплачиваются отдельно.</li>
+      <li><b>Смотрите, кто продаёт билет</b>После выбора рейса агрегатор показывает продавца. Надёжнее покупать у авиакомпании или у известного агентства с хорошими отзывами.</li>
+      <li><b>Бронируйте отель с бесплатной отменой</b>За несколько дней до конца бесплатной отмены проверьте цену снова. Если стало дешевле, перебронируйте.</li>
+      <li><b>Помните про туристический налог</b>Во многих городах Европы его платят на месте за каждую ночь, и в цену на сайте он может не входить.</li>
+    </ul>
+  </section>
+
+  <p class="foot">Страница только собирает ссылки на поиск: она не продаёт билеты, не получает комиссию и не видит цены. Все сайты открываются в новой вкладке. Последний маршрут запоминается в вашем браузере.</p>
+</main>
+
+<script>
+(function(){
+  // [Русское название, English name, код для поиска, код Skyscanner (если отличается)]
+  var CITIES = [
+    ["Амстердам","Amsterdam","AMS"],["Анталья","Antalya","AYT"],["Афины","Athens","ATH"],
+    ["Бангкок","Bangkok","BKK"],["Барселона","Barcelona","BCN"],["Белград","Belgrade","BEG"],
+    ["Берлин","Berlin","BER"],["Брюссель","Brussels","BRU"],["Будапешт","Budapest","BUD"],
+    ["Бухарест","Bucharest","OTP"],["Валенсия","Valencia","VLC"],["Варшава","Warsaw","WAW"],
+    ["Вена","Vienna","VIE"],["Венеция","Venice","VCE"],["Вильнюс","Vilnius","VNO"],
+    ["Гамбург","Hamburg","HAM"],["Дубай","Dubai","DXB"],["Дублин","Dublin","DUB"],
+    ["Дубровник","Dubrovnik","DBV"],["Дюссельдорф","Dusseldorf","DUS"],["Ереван","Yerevan","EVN"],
+    ["Женева","Geneva","GVA"],["Загреб","Zagreb","ZAG"],["Ираклион","Heraklion","HER"],
+    ["Кишинёв","Chisinau","KIV"],["Кёльн","Cologne","CGN"],["Копенгаген","Copenhagen","CPH"],
+    ["Краков","Krakow","KRK"],["Ларнака","Larnaca","LCA"],["Лиссабон","Lisbon","LIS"],
+    ["Лондон","London","LON","lond"],["Любляна","Ljubljana","LJU"],["Мадрид","Madrid","MAD"],
+    ["Малага","Malaga","AGP"],["Мальта","Malta","MLA"],["Марракеш","Marrakech","RAK"],
+    ["Милан","Milan","MIL","mila"],["Мюнхен","Munich","MUC"],["Неаполь","Naples","NAP"],
+    ["Нью-Йорк","New York","NYC","nyca"],["Ницца","Nice","NCE"],["Осло","Oslo","OSL"],
+    ["Пальма-де-Майорка","Palma de Mallorca","PMI"],["Париж","Paris","PAR","pari"],["Порту","Porto","OPO"],
+    ["Прага","Prague","PRG"],["Рейкьявик","Reykjavik","KEF"],["Рига","Riga","RIX"],
+    ["Рим","Rome","ROM","rome"],["Салоники","Thessaloniki","SKG"],["София","Sofia","SOF"],
+    ["Сплит","Split","SPU"],["Стамбул","Istanbul","IST"],["Стокгольм","Stockholm","STO","stoc"],
+    ["Таллин","Tallinn","TLL"],["Тбилиси","Tbilisi","TBS"],["Тель-Авив","Tel Aviv","TLV"],
+    ["Тенерифе","Tenerife","TFS"],["Флоренция","Florence","FLR"],["Франкфурт","Frankfurt","FRA"],
+    ["Хельсинки","Helsinki","HEL"],["Хургада","Hurghada","HRG"],["Цюрих","Zurich","ZRH"],
+    ["Эдинбург","Edinburgh","EDI"]
+  ].map(function(c){ return {ru:c[0], en:c[1], code:c[2], sky:(c[3]||c[2]).toLowerCase()}; });
+
+  var MARKETS = {
+    ie:{sky:"www.skyscanner.ie", kayak:"www.kayak.ie"},
+    de:{sky:"www.skyscanner.de", kayak:"www.kayak.de"},
+    es:{sky:"www.skyscanner.es", kayak:"www.kayak.es"},
+    fr:{sky:"www.skyscanner.fr", kayak:"www.kayak.fr"},
+    it:{sky:"www.skyscanner.it", kayak:"www.kayak.it"},
+    nl:{sky:"www.skyscanner.nl", kayak:"www.kayak.nl"}
+  };
+
+  var STORE_KEY = "trip-radar-v1";
+  var $ = function(id){ return document.getElementById(id); };
+  var enc = encodeURIComponent;
+
+  /* ---------- helpers ---------- */
+  function pad(n){ return String(n).padStart(2,"0"); }
+  function isoOf(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+  function parts(iso){ var p = iso.split("-").map(Number); return {y:p[0], m:p[1], d:p[2]}; }
+  function addDays(iso, n){ var p = parts(iso); return isoOf(new Date(p.y, p.m-1, p.d+n)); }
+  function diffDays(a, b){ var x = parts(a), y = parts(b); return Math.round((Date.UTC(y.y,y.m-1,y.d) - Date.UTC(x.y,x.m-1,x.d)) / 864e5); }
+  function validIso(s){ return /^\d{4}-\d{2}-\d{2}$/.test(s || ""); }
+  function yymmdd(iso){ return iso.slice(2,4) + iso.slice(5,7) + iso.slice(8,10); }
+  var dayFmt = new Intl.DateTimeFormat("ru-RU", {day:"numeric", month:"short"});
+  function human(iso){ var p = parts(iso); return dayFmt.format(new Date(p.y, p.m-1, p.d)); }
+  function plural(n, forms){
+    var a = n % 10, b = n % 100;
+    return n + " " + forms[(a === 1 && b !== 11) ? 0 : (a >= 2 && a <= 4 && (b < 12 || b > 14)) ? 1 : 2];
+  }
+  function norm(s){ return String(s).toLowerCase().replace(/ё/g,"е").replace(/[^a-zа-я0-9]/g,""); }
+  function optionText(c){ return c.ru + " · " + c.code; }
+
+  function findPlace(raw){
+    var v = (raw || "").trim();
+    if (!v) return null;
+    var i, c, n = norm(v);
+    for (i = 0; i < CITIES.length; i++){
+      c = CITIES[i];
+      if (optionText(c) === v || norm(c.ru) === n || norm(c.en) === n || c.code.toLowerCase() === n) return c;
+    }
+    if (/^[A-Za-z]{3}$/.test(v)){
+      var code = v.toUpperCase();
+      return {ru:code, en:code, code:code, sky:code.toLowerCase(), custom:true};
+    }
+    var hits = CITIES.filter(function(c){ return norm(c.ru).indexOf(n) === 0 || norm(c.en).indexOf(n) === 0; });
+    if (hits.length === 1) return hits[0];
+    return {text:v, noCode:true};
+  }
+
+  /* ---------- sites ---------- */
+  var FLY = [
+    {
+      name:"Google Flights",
+      domain:function(){ return "google.com/travel/flights"; },
+      why:"Ищет по авиакомпаниям и агентствам сразу. В календаре видно, в какие дни дешевле. Самые низкие цены на вкладке «Самые дешёвые».",
+      url:function(t){
+        var q = "Flights from " + t.o.en + " to " + t.d.en + " on " + t.dep + (t.rt ? " through " + t.ret : " one way");
+        return "https://www.google.com/travel/flights?q=" + enc(q) + "&hl=ru&curr=EUR";
+      },
+      chips:function(t){ return [["Маршрут",1],["Даты",1],["Пассажиры",t.pax === 1],["Сортировка по цене",0]]; }
+    },
+    {
+      name:"Skyscanner",
+      domain:function(t){ return t.m.sky.replace("www.",""); },
+      why:"Сравнивает сотни авиакомпаний и агентств. Режим «Весь месяц» показывает самые дешёвые дни.",
+      url:function(t){
+        return "https://" + t.m.sky + "/transport/flights/" + t.o.sky + "/" + t.d.sky + "/" + yymmdd(t.dep) + "/" +
+          (t.rt ? yymmdd(t.ret) + "/" : "") +
+          "?adultsv2=" + t.pax + "&cabinclass=economy&childrenv2=&rtn=" + (t.rt ? 1 : 0) + "&preferdirects=false";
+      },
+      chips:function(){ return [["Маршрут",1],["Даты",1],["Пассажиры",1],["Сортировка по цене",0]]; }
+    },
+    {
+      name:"Kayak",
+      domain:function(t){ return t.m.kayak.replace("www.",""); },
+      why:"Метапоиск с подсказкой, покупать сейчас или подождать снижения цены. Результаты сразу отсортированы по цене.",
+      url:function(t){
+        return "https://" + t.m.kayak + "/flights/" + t.o.code + "-" + t.d.code + "/" + t.dep +
+          (t.rt ? "/" + t.ret : "") + (t.pax > 1 ? "/" + t.pax + "adults" : "") + "?sort=price_a";
+      },
+      chips:function(){ return [["Маршрут",1],["Даты",1],["Пассажиры",1],["Сортировка по цене",1]]; }
+    },
+    {
+      name:"Kiwi.com",
+      domain:function(){ return "kiwi.com"; },
+      why:"Склеивает рейсы разных авиакомпаний, поэтому иногда дешевле всех. Такие пересадки авиакомпании не страхуют, но действует гарантия Kiwi.",
+      url:function(t){
+        return "https://www.kiwi.com/deep?from=" + t.o.code + "&to=" + t.d.code + "&departure=" + t.dep +
+          (t.rt ? "&return=" + t.ret : "") + "&adults=" + t.pax + "&currency=eur&lang=ru";
+      },
+      chips:function(t){ return [["Маршрут",1],["Даты",1],["Пассажиры",t.pax === 1],["Сортировка по цене",0]]; }
+    }
+  ];
+
+  var STAY = [
+    {
+      name:"Booking.com",
+      domain:function(){ return "booking.com"; },
+      why:"Самый большой выбор жилья в Европе, много вариантов с бесплатной отменой. Результаты сразу отсортированы по цене.",
+      url:function(t){
+        return "https://www.booking.com/searchresults.ru.html?ss=" + enc(t.stay) + "&checkin=" + t.ci + "&checkout=" + t.co +
+          "&group_adults=" + t.pax + "&no_rooms=" + t.rooms + "&group_children=0&selected_currency=EUR&order=price";
+      },
+      chips:function(){ return [["Город",1],["Даты",1],["Гости",1],["Сортировка по цене",1]]; }
+    },
+    {
+      name:"Hotels.com",
+      domain:function(){ return "hotels.com"; },
+      why:"Отели по всему миру и бонусы программы One Key за бронирования. Результаты сразу отсортированы по цене.",
+      url:function(t){
+        return "https://www.hotels.com/Hotel-Search?destination=" + enc(t.stay) + "&startDate=" + t.ci + "&endDate=" + t.co +
+          "&adults=" + t.pax + "&rooms=" + t.rooms + "&sort=PRICE_LOW_TO_HIGH";
+      },
+      chips:function(t){ return [["Город",1],["Даты",1],["Гости",t.rooms === 1],["Сортировка по цене",1]]; }
+    },
+    {
+      name:"Airbnb",
+      domain:function(){ return "airbnb.com"; },
+      why:"Квартиры и комнаты у хозяев. Для компании или долгой поездки часто выходит дешевле отеля. Цену ограничьте фильтром.",
+      url:function(t){
+        return "https://www.airbnb.com/s/" + enc(t.stay) + "/homes?checkin=" + t.ci + "&checkout=" + t.co +
+          "&adults=" + t.pax + "&currency=EUR&locale=ru";
+      },
+      chips:function(){ return [["Город",1],["Даты",1],["Гости",1],["Сортировка по цене",0]]; }
+    },
+    {
+      name:"Google Отели",
+      domain:function(){ return "google.com/travel"; },
+      why:"Показывает цену одного и того же отеля на разных сайтах бронирования, так легко найти самый дешёвый.",
+      url:function(t){
+        return "https://www.google.com/travel/search?q=" + enc("hotels in " + t.stay) + "&hl=ru&curr=EUR";
+      },
+      chips:function(){ return [["Город",1],["Даты",0],["Гости",0],["Сортировка по цене",0]]; }
+    }
+  ];
+
+  var ARROW = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+
+  function makeCard(site){
+    var a = document.createElement("a");
+    a.className = "site";
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.innerHTML = '<div class="site-top"><span class="site-name"></span><span class="site-domain"></span></div>' +
+      '<p class="site-why"></p><ul class="chips"></ul><span class="go"><span class="go-text"></span>' + ARROW + '</span>';
+    a.querySelector(".site-name").textContent = site.name;
+    a.querySelector(".site-why").textContent = site.why;
+    site.el = a;
+    return a;
+  }
+  FLY.forEach(function(s){ $("flySites").appendChild(makeCard(s)); });
+  STAY.forEach(function(s){ $("staySites").appendChild(makeCard(s)); });
+
+  function renderCard(site, t, problem){
+    var a = site.el;
+    a.querySelector(".site-domain").textContent = site.domain(t);
+    var ul = a.querySelector(".chips");
+    ul.innerHTML = "";
+    site.chips(t).forEach(function(c){
+      var li = document.createElement("li");
+      li.className = "chip " + (c[1] ? "ok" : "site");
+      li.textContent = c[1] ? c[0] : c[0] + ": на сайте";
+      ul.appendChild(li);
+    });
+    var label = a.querySelector(".go-text");
+    if (problem){
+      a.removeAttribute("href");
+      a.setAttribute("aria-disabled", "true");
+      a.classList.add("off");
+      label.textContent = problem;
+    } else {
+      a.href = site.url(t);
+      a.removeAttribute("aria-disabled");
+      a.classList.remove("off");
+      label.textContent = "Открыть поиск";
+    }
+    a.setAttribute("aria-label", site.name + ". " + (problem || "Открыть поиск в новой вкладке"));
+  }
+
+  /* ---------- board ---------- */
+  function setFlaps(el, code){
+    var s = ((code || "") + "···").slice(0, 3);
+    if (el.dataset.code === s) return;
+    el.dataset.code = s;
+    el.innerHTML = "";
+    for (var i = 0; i < 3; i++){
+      var f = document.createElement("span");
+      f.className = "flap";
+      f.textContent = s[i];
+      f.style.animationDelay = (i * 80) + "ms";
+      el.appendChild(f);
+    }
+  }
+
+  /* ---------- state ---------- */
+  var today = isoOf(new Date());
+  var defaults = {from:"Берлин · BER", to:"Барселона · BCN", kind:"rt", dep:addDays(today, 30), ret:addDays(today, 37), nights:3, pax:1, rooms:1, market:"ie"};
+
+  function load(){
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      if (!raw) return null;
+      var s = JSON.parse(raw);
+      if (!s || typeof s !== "object") return null;
+      if (!validIso(s.dep) || diffDays(today, s.dep) < 0){ s.dep = defaults.dep; s.ret = defaults.ret; }
+      return s;
+    } catch (e){ return null; }
+  }
+  function save(s){ try { localStorage.setItem(STORE_KEY, JSON.stringify(s)); } catch (e){} }
+
+  function read(){
+    return {
+      from:$("from").value, to:$("to").value,
+      kind:$("kind-ow").checked ? "ow" : "rt",
+      dep:$("dep").value, ret:$("ret").value,
+      nights:clampInt($("nights").value, 1, 60, 3),
+      pax:clampInt($("pax").value, 1, 9, 1),
+      rooms:clampInt($("rooms").value, 1, 5, 1),
+      market:MARKETS[$("market").value] ? $("market").value : "ie"
+    };
+  }
+  function clampInt(v, lo, hi, dflt){ var n = parseInt(v, 10); if (isNaN(n)) return dflt; return Math.min(hi, Math.max(lo, n)); }
+
+  function write(s){
+    $("from").value = s.from || "";
+    $("to").value = s.to || "";
+    $("kind-ow").checked = s.kind === "ow";
+    $("kind-rt").checked = s.kind !== "ow";
+    $("dep").value = validIso(s.dep) ? s.dep : defaults.dep;
+    $("ret").value = validIso(s.ret) ? s.ret : "";
+    $("nights").value = s.nights || 3;
+    $("pax").value = s.pax || 1;
+    $("rooms").value = s.rooms || 1;
+    $("market").value = MARKETS[s.market] ? s.market : "ie";
+  }
+
+  /* ---------- update ---------- */
+  function update(){
+    var s = read();
+    var rt = s.kind === "rt";
+    $("retField").hidden = !rt;
+    $("nightsField").hidden = rt;
+    $("dep").min = today;
+    $("ret").min = s.dep || today;
+
+    var o = findPlace(s.from), d = findPlace(s.to);
+    var msgs = [];
+
+    setFlaps($("flapsFrom"), o && !o.noCode ? o.code : "");
+    setFlaps($("flapsTo"), d && !d.noCode ? d.code : "");
+    $("cityFrom").textContent = o ? (o.noCode ? o.text : (o.custom ? "Код аэропорта" : o.ru)) : "Город вылета";
+    $("cityTo").textContent = d ? (d.noCode ? d.text : (d.custom ? "Код аэропорта" : d.ru)) : "Город прилёта";
+    $("from").setAttribute("aria-invalid", o && o.noCode ? "true" : "false");
+    $("to").setAttribute("aria-invalid", d && d.noCode ? "true" : "false");
+
+    // dates
+    var depOk = validIso(s.dep) && diffDays(today, s.dep) >= 0;
+    var retOk = !rt || (validIso(s.ret) && depOk && diffDays(s.dep, s.ret) >= 0);
+    var nights = rt ? (depOk && validIso(s.ret) ? diffDays(s.dep, s.ret) : 0) : s.nights;
+    var ci = depOk ? s.dep : "";
+    var co = depOk && nights > 0 ? addDays(s.dep, nights) : "";
+
+    // flights
+    var flyProblem = "";
+    if (!o || !d) flyProblem = "Укажите, откуда и куда";
+    else if (o.noCode || d.noCode) flyProblem = "Нужен город из списка";
+    else if (o.code === d.code) flyProblem = "Города совпадают";
+    else if (!depOk) flyProblem = "Укажите дату вылета";
+    else if (!retOk) flyProblem = "Проверьте дату возврата";
+
+    if ((o && o.noCode) || (d && d.noCode)) msgs.push("Для авиабилетов выберите город из списка или впишите код аэропорта из трёх латинских букв, например KRK.");
+    if (validIso(s.dep) && !depOk) msgs.push("Дата вылета уже прошла.");
+    if (rt && depOk && validIso(s.ret) && diffDays(s.dep, s.ret) < 0) msgs.push("Дата возврата раньше даты вылета.");
+
+    // stays
+    var stayProblem = "";
+    if (!d) stayProblem = "Укажите, куда едете";
+    else if (!depOk) stayProblem = "Укажите дату заезда";
+    else if (nights < 1) stayProblem = rt ? "Нужна хотя бы одна ночь" : "Укажите число ночей";
+
+    var t = {
+      o:o, d:d, dep:s.dep, ret:s.ret, rt:rt, pax:s.pax, rooms:s.rooms, m:MARKETS[s.market],
+      stay:d ? (d.noCode ? d.text : d.en) : "", ci:ci, co:co
+    };
+    FLY.forEach(function(site){ renderCard(site, t, flyProblem); });
+    STAY.forEach(function(site){ renderCard(site, t, stayProblem); });
+
+    // summaries
+    var paxTxt = plural(s.pax, ["пассажир","пассажира","пассажиров"]);
+    $("sumFly").textContent = flyProblem ? "Маршрут не задан" :
+      o.code + " → " + d.code + " · " + human(s.dep) + (rt ? " – " + human(s.ret) : ", в одну сторону") + " · " + paxTxt;
+    $("sumStay").textContent = stayProblem ? "Направление не задано" :
+      (d.noCode ? d.text : d.ru) + " · " + human(ci) + " – " + human(co) + " · " + plural(nights, ["ночь","ночи","ночей"]) +
+      " · " + plural(s.pax, ["гость","гостя","гостей"]) + ", " + plural(s.rooms, ["номер","номера","номеров"]);
+    $("nightsHint").textContent = nights > 0 ? "в отеле: " + plural(nights, ["ночь","ночи","ночей"]) : "";
+
+    // anywhere
+    var anyOk = o && !o.noCode && depOk && retOk;
+    var kiwiAny = $("anyKiwi"), skyAny = $("anySky");
+    if (anyOk){
+      kiwiAny.href = "https://www.kiwi.com/deep?from=" + o.code + "&to=anywhere&departure=" + s.dep + (rt ? "&return=" + s.ret : "") +
+        "&adults=" + s.pax + "&currency=eur&lang=ru";
+      skyAny.href = "https://" + t.m.sky + "/transport/flights-from/" + o.sky + "/" + yymmdd(s.dep) + "/" + (rt ? yymmdd(s.ret) + "/" : "") +
+        "?adultsv2=" + s.pax + "&cabinclass=economy&rtn=" + (rt ? 1 : 0);
+      kiwiAny.classList.remove("off"); skyAny.classList.remove("off");
+      kiwiAny.removeAttribute("aria-disabled"); skyAny.removeAttribute("aria-disabled");
+      $("anyNote").textContent = "Город вылета: " + (o.custom ? o.code : o.ru + " (" + o.code + ")") + ". Даты: " + human(s.dep) + (rt ? " – " + human(s.ret) : "");
+    } else {
+      [kiwiAny, skyAny].forEach(function(a){ a.removeAttribute("href"); a.classList.add("off"); a.setAttribute("aria-disabled","true"); });
+      $("anyNote").textContent = "Укажите город вылета и даты, и ссылки Kiwi.com и Skyscanner заработают.";
+    }
+
+    $("msg").textContent = msgs.join(" ");
+    return s;
+  }
+
+  /* ---------- init ---------- */
+  var dl = $("cities");
+  CITIES.forEach(function(c){ var op = document.createElement("option"); op.value = optionText(c); dl.appendChild(op); });
+
+  var stored = load();
+  write(stored || defaults);
+  $("example").hidden = !!stored;
+  update();
+
+  var form = $("trip");
+  function onEdit(){
+    $("example").hidden = true;
+    save(update());
+  }
+  form.addEventListener("input", onEdit);
+  form.addEventListener("change", onEdit);
+
+  $("swap").addEventListener("click", function(){
+    var a = $("from").value; $("from").value = $("to").value; $("to").value = a;
+    onEdit();
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll("[data-step]"), function(btn){
+    btn.addEventListener("click", function(){
+      var inp = $(btn.getAttribute("data-step"));
+      var lo = +inp.min, hi = +inp.max;
+      inp.value = Math.min(hi, Math.max(lo, clampInt(inp.value, lo, hi, lo) + Number(btn.getAttribute("data-d"))));
+      onEdit();
+    });
+  });
+
+  $("kind-rt").addEventListener("change", function(){
+    if (!validIso($("ret").value) && validIso($("dep").value)) $("ret").value = addDays($("dep").value, clampInt($("nights").value, 1, 60, 7));
+  });
+
+  form.addEventListener("submit", function(e){
+    e.preventDefault();
+    save(update());
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    $("flights").scrollIntoView({behavior: reduce ? "auto" : "smooth", block:"start"});
+  });
+})();
+</script>
